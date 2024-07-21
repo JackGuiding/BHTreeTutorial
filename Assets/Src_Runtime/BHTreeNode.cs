@@ -8,6 +8,7 @@ namespace BHTreeTutorial {
     public class BHTreeNode {
 
         // 表达节点类型
+        public string nodeName;
         public BHTreeNodeType type;
         public BHTreeNodeStatus status;
         public Func<bool> PreconditionHandle;
@@ -19,7 +20,9 @@ namespace BHTreeTutorial {
         public Func<float, BHTreeNodeStatus> ActEnterHandle;
         public Func<float, BHTreeNodeStatus> ActRunningHandle;
 
-        public BHTreeNode() { }
+        public BHTreeNode(string name) {
+            nodeName = name;
+        }
 
         public void InitAsAction() {
             // type = BHTreeNodeType.Action;
@@ -32,6 +35,7 @@ namespace BHTreeTutorial {
                     child.Reset();
                 }
             }
+            activeChild = null;
         }
 
         // ==== 容器 ====
@@ -52,30 +56,32 @@ namespace BHTreeTutorial {
         }
 
         public BHTreeNodeStatus Execute(float dt) {
+            // UnityEngine.Debug.Log($"Execute: {nodeName}");
             // 容器: 顺序节点 / 选择节点 / 并行与节点 / 并行或节点
             if (type == BHTreeNodeType.Sequence) {
-                return Container_Sequence_Execute(dt);
+                status = Container_Sequence_Execute(dt);
             } else if (type == BHTreeNodeType.Selector) {
-                return Container_Selector_Execute(dt);
+                status = Container_Selector_Execute(dt);
             } else if (type == BHTreeNodeType.ParallelAnd) {
-                return Container_Parallel_And_Execute(dt);
+                status = Container_Parallel_And_Execute(dt);
             } else if (type == BHTreeNodeType.ParallelOr) {
-                return Container_Parallel_Or_Execute(dt);
+                status = Container_Parallel_Or_Execute(dt);
             } else if (type == BHTreeNodeType.Action) {
                 // 行为节点
-                return Action_Execute(dt);
+                status = Action_Execute(dt);
             } else {
                 throw new Exception("未知的节点类型");
             }
+            return status;
         }
 
         BHTreeNodeStatus Container_Sequence_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {
                 // 能否进入 PreCondition
-                if (PreconditionHandle == null || !PreconditionHandle.Invoke()) {
-                    status = BHTreeNodeStatus.Done;
-                } else {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
                     status = BHTreeNodeStatus.Running;
+                } else {
+                    status = BHTreeNodeStatus.Done;
                 }
             } else if (status == BHTreeNodeStatus.Running) {
                 // 执行子节点
@@ -108,10 +114,10 @@ namespace BHTreeTutorial {
 
         BHTreeNodeStatus Container_Selector_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {
-                if (PreconditionHandle == null || !PreconditionHandle.Invoke()) {
-                    status = BHTreeNodeStatus.Done;
-                } else {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
                     status = BHTreeNodeStatus.Running;
+                } else {
+                    status = BHTreeNodeStatus.Done;
                 }
             } else if (status == BHTreeNodeStatus.Running) {
                 // 选择容器:
@@ -146,10 +152,10 @@ namespace BHTreeTutorial {
 
         BHTreeNodeStatus Container_Parallel_And_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {
-                if (PreconditionHandle == null || !PreconditionHandle.Invoke()) {
-                    status = BHTreeNodeStatus.Done;
-                } else {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
                     status = BHTreeNodeStatus.Running;
+                } else {
+                    status = BHTreeNodeStatus.Done;
                 }
             } else if (status == BHTreeNodeStatus.Running) {
                 int doneCount = 0;
@@ -173,10 +179,10 @@ namespace BHTreeTutorial {
 
         BHTreeNodeStatus Container_Parallel_Or_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {
-                if (PreconditionHandle == null || !PreconditionHandle.Invoke()) {
-                    status = BHTreeNodeStatus.Done;
-                } else {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
                     status = BHTreeNodeStatus.Running;
+                } else {
+                    status = BHTreeNodeStatus.Done;
                 }
             } else if (status == BHTreeNodeStatus.Running) {
                 bool hasDone = false;
@@ -203,15 +209,22 @@ namespace BHTreeTutorial {
         #region Action
         BHTreeNodeStatus Action_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {
-                if (PreconditionHandle == null || !PreconditionHandle.Invoke()) {
-                    status = BHTreeNodeStatus.Done;
-                } else {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
                     status = BHTreeNodeStatus.Running;
-                    status = ActEnterHandle.Invoke(dt);
+                } else {
+                    status = BHTreeNodeStatus.Done;
+                    if (ActEnterHandle != null) {
+                        status = ActEnterHandle.Invoke(dt);
+                    }
                 }
             } else if (status == BHTreeNodeStatus.Running) {
                 // 执行行为
-                status = ActRunningHandle.Invoke(dt);
+                if (ActRunningHandle == null) {
+                    status = BHTreeNodeStatus.Done;
+                    UnityEngine.Debug.Log($"{nodeName} Action: 未设置 ActRunningHandle");
+                } else {
+                    status = ActRunningHandle.Invoke(dt);
+                }
             } else {
                 // Do Nothing
             }

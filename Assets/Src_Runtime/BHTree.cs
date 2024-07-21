@@ -5,7 +5,7 @@ namespace BHTreeTutorial {
         BHTreeNode root;
         public bool isPause;
 
-        public BHTree() {}
+        public BHTree() { }
 
         public void InitRoot(BHTreeNode root) {
             this.root = root;
