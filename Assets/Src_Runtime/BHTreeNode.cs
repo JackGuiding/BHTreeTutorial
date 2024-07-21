@@ -11,12 +11,13 @@ namespace BHTreeTutorial {
         public string nodeName;
         public BHTreeNodeType type;
         public BHTreeNodeStatus status;
-        public Func<bool> PreconditionHandle;
 
         // 子节点
         public List<BHTreeNode> children;
         public BHTreeNode activeChild;
 
+        // 外部绑定
+        public Func<bool> PreconditionHandle;
         public Func<float, BHTreeNodeStatus> ActEnterHandle;
         public Func<float, BHTreeNodeStatus> ActRunningHandle;
 

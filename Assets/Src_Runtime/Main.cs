@@ -35,7 +35,9 @@ namespace BHTreeTutorial {
             //     - skill1: Action
             //     - skill2: Action
 
-            // Search: ParallelOr   
+            // RoleDomain.Spawn(GameContext ctx) {}
+
+            // Search: ParallelOr
             BHTreeNode searchHpAction = new BHTreeNode("Search HP");
             searchHpAction.ActRunningHandle = (dt) => {
                 if (hp < 50) {
