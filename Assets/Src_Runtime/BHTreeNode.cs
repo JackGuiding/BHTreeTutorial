@@ -39,6 +39,20 @@ namespace BHTreeTutorial {
             activeChild = null;
         }
 
+        private bool AllowEnter() {
+            if (status == BHTreeNodeStatus.Done) {
+                return false;
+            } else if (status == BHTreeNodeStatus.NotEntered) {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        }
+
         // ==== 容器 ====
         #region Container
         public void InitAsContainer(BHTreeNodeType type) {
@@ -61,8 +75,10 @@ namespace BHTreeTutorial {
             // 容器: 顺序节点 / 选择节点 / 并行与节点 / 并行或节点
             if (type == BHTreeNodeType.Sequence) {
                 status = Container_Sequence_Execute(dt);
-            } else if (type == BHTreeNodeType.Selector) {
-                status = Container_Selector_Execute(dt);
+            } else if (type == BHTreeNodeType.SelectorSequence) {
+                status = Container_SelectorSequence_Execute(dt);
+            } else if (type == BHTreeNodeType.SelectorRandom) {
+                status = Container_SelectorRandom_Execute(dt);
             } else if (type == BHTreeNodeType.ParallelAnd) {
                 status = Container_Parallel_And_Execute(dt);
             } else if (type == BHTreeNodeType.ParallelOr) {
@@ -113,7 +129,7 @@ namespace BHTreeTutorial {
             return status;
         }
 
-        BHTreeNodeStatus Container_Selector_Execute(float dt) {
+        BHTreeNodeStatus Container_SelectorSequence_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {
                 if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
                     status = BHTreeNodeStatus.Running;
@@ -135,9 +151,14 @@ namespace BHTreeTutorial {
                     // 同时执行一个
                     for (int i = 0; i < children.Count; i += 1) {
                         BHTreeNode child = children[i];
-                        BHTreeNodeStatus childStatus = child.Execute(dt);
-                        if (childStatus != BHTreeNodeStatus.Done) {
+                        bool allow = child.AllowEnter();
+                        if (allow) {
                             activeChild = child;
+                            BHTreeNodeStatus childStatus = activeChild.Execute(dt);
+                            if (childStatus == BHTreeNodeStatus.Done) {
+                                status = BHTreeNodeStatus.Done;
+                                activeChild = null;
+                            }
                             break;
                         }
                     }
@@ -150,6 +171,51 @@ namespace BHTreeTutorial {
             }
             return status;
         }
+
+        private BHTreeNodeStatus Container_SelectorRandom_Execute(float dt) {
+            if (status == BHTreeNodeStatus.NotEntered) {
+                if (PreconditionHandle == null || PreconditionHandle.Invoke()) {
+                    status = BHTreeNodeStatus.Running;
+                    for (int i = 0; i < children.Count; i++) {
+                        int j = UnityEngine.Random.Range(i, children.Count);
+                        BHTreeNode temp = children[i];
+                        children[i] = children[j];
+                        children[j] = temp;
+                    }
+
+                } else {
+                    status = BHTreeNodeStatus.Done;
+                }
+            } else if (status == BHTreeNodeStatus.Running) {
+                if (activeChild != null) {
+                    BHTreeNodeStatus childStatus = activeChild.Execute(dt);
+                    if (childStatus == BHTreeNodeStatus.Done) {
+                        status = BHTreeNodeStatus.Done;
+                    }
+                } else {
+                    for (int i = 0; i < children.Count; i++) {
+                        var child = children[i];
+                        bool allow = child.AllowEnter();
+                        if (allow) {
+                            BHTreeNodeStatus childstatus = activeChild.Execute(dt);
+                            if (childstatus == BHTreeNodeStatus.Done) {
+                                status = BHTreeNodeStatus.Done;
+                            } else {
+                                activeChild = child;
+                            }
+                            break;
+                        }
+                    }
+                    if (activeChild == null) {
+                        status = BHTreeNodeStatus.Done;
+                    }
+                }
+            } else {
+
+            }
+            return status;
+        }
+
 
         BHTreeNodeStatus Container_Parallel_And_Execute(float dt) {
             if (status == BHTreeNodeStatus.NotEntered) {

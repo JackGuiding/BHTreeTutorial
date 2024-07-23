@@ -97,7 +97,7 @@ namespace BHTreeTutorial {
             attackContainer.PreconditionHandle = () => {
                 return hasTarget;
             };
-            attackContainer.InitAsContainer(BHTreeNodeType.Selector);
+            attackContainer.InitAsContainer(BHTreeNodeType.SelectorSequence);
             attackContainer.Container_AddChild(skill1Action);
             attackContainer.Container_AddChild(skill2Action);
 
